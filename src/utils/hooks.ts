@@ -22,7 +22,7 @@ export const useCustomInfiniteQuery = <
 	queryMainKey,
 	fetchFn,
 	getNextPageParam,
-	onQueryKeyChange,
+	// onQueryKeyChange,
 	options = {},
 	filterBy = {}
 }: {
@@ -30,20 +30,20 @@ export const useCustomInfiniteQuery = <
 	queryMainKey: TQueryKey[0];
 	filterBy?: NonNullable<TQueryKey[1]['filterBy']>;
 	fetchFn: (query: TQueryKey[1]) => Promise<TData>;
-	/**
-	 * Don't forget to memoize it
-	 * @param queryKey
-	 * @returns
-	 */
-	onQueryKeyChange?: (
-		queryKey: readonly [
-			TQueryKey[0],
-			{
-				readonly initialCursor: TQueryKey[1]['cursor'];
-				readonly filterBy: NonNullable<TQueryKey[1]['filterBy']>;
-			}
-		]
-	) => void;
+	// /**
+	//  * Don't forget to memoize it
+	//  * @param queryKey
+	//  * @returns
+	//  */
+	// onQueryKeyChange?: (
+	// 	queryKey: readonly [
+	// 		TQueryKey[0],
+	// 		{
+	// 			readonly initialCursor: TQueryKey[1]['cursor'];
+	// 			readonly filterBy: NonNullable<TQueryKey[1]['filterBy']>;
+	// 		}
+	// 	]
+	// ) => void;
 	getNextPageParam?:
 		| GetNextPageParamFunction<{
 				data: TData;
@@ -66,6 +66,9 @@ export const useCustomInfiniteQuery = <
 		  >
 		| undefined;
 }) => {
+	const [onQueryKeyChange, setOnQueryKeyChange] = useState<
+		null | (() => void)
+	>();
 	const queryKey = useMemo(
 		() => [queryMainKey, { initialCursor, filterBy }] as const,
 		[initialCursor, filterBy, queryMainKey]
@@ -99,41 +102,29 @@ export const useCustomInfiniteQuery = <
 		}
 	);
 
-	const infiniteQueryData = infiniteQuery.data || {
-		pageParams: [],
-		pages: []
-	};
-
-	const [currentIndex, setCurrentIndex] = useState(0);
-
-	const isNextPageDisabled =
-		(!infiniteQuery.hasNextPage &&
-			currentIndex + 1 === infiniteQuery.data?.pages.length) ||
-		infiniteQuery.isFetching;
-
-	const isPreviousPageDisabled = currentIndex === 0 || infiniteQuery.isFetching;
-
 	useEffect(() => {
 		const configCurrent = config.current;
+		let timeoutId: NodeJS.Timeout;
 		if (configCurrent.queryKey !== queryKey) {
-			setCurrentIndex(0);
-			onQueryKeyChange && setTimeout(() => onQueryKeyChange?.(queryKey), 0);
+			if (onQueryKeyChange)
+				timeoutId = setTimeout(() => onQueryKeyChange?.(), 0);
 			configCurrent.queryKey = queryKey;
 		}
 
 		return () => {
 			configCurrent.queryKey = null;
+			timeoutId && clearTimeout(timeoutId);
 		};
 	}, [onQueryKeyChange, queryKey]);
 
 	return {
 		infiniteQuery,
-		infiniteQueryData,
-		isNextPageDisabled,
-		isPreviousPageDisabled,
-		currentIndex,
-		setCurrentIndex,
-		queryKey
+		// isNextPageDisabled,
+		// isPreviousPageDisabled,
+		// currentIndex,
+		// setCurrentIndex,
+		queryKey,
+		setOnQueryKeyChange
 	};
 };
 
