@@ -1,37 +1,31 @@
-import { ColumnDef } from '@tanstack/react-table';
+import type {
+	ColumnDef,
+	RowSelectionState,
+	Table,
+	Column
+} from '@tanstack/react-table';
 import type { ProductsAPIInput, ProductsAPIOutput } from './api/products';
-import { CustomGetNextPageParam, useDebounce } from '@/utils/hooks';
+import { useDebounce } from '@/utils/hooks';
+import { HTMLProps, useCallback } from 'react';
 
 import Head from 'next/head';
 import { Inter } from '@next/font/google';
-import styles from '@/styles/Home.module.css';
-import { memo, useId, useMemo } from 'react';
+import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { useCustomInfiniteQuery } from '@/utils/hooks';
 import { Products } from '@/ts';
 import {
 	createColumnHelper,
 	flexRender,
 	getCoreRowModel,
+	getFilteredRowModel,
 	useReactTable
 } from '@tanstack/react-table';
 
+type FilterBy = NonNullable<ProductsAPIInput['filterBy']>;
+
 const inter = Inter({ subsets: ['latin'] });
 
-const fetchProducts = async (query: {
-	limit: 5 | 10 | 20;
-	offset: number;
-}): Promise<ProductsAPIOutput> => {
-	return await fetch(
-		`/api/products/?limit=${query.limit}&offset=${query.offset}`
-	).then((response) => {
-		if (response.status === 404) throw new Error('Not Found');
-		if (response.status === 400) throw new Error('Bad Request');
-
-		return response.json();
-	});
-};
-
-const defaultCursor: {
+const initialCursor: {
 	offset: ProductsAPIInput['offset'];
 	limit: ProductsAPIInput['limit'];
 } = {
@@ -40,48 +34,77 @@ const defaultCursor: {
 };
 
 const columnHelper = createColumnHelper<Products>();
-const columns = [
-	columnHelper.accessor('id', {
-		cell: (info) => info.getValue(),
-		// header: info => info
-		footer: (info) => info.column.id
-	}),
-	columnHelper.accessor('title', {
-		cell: (info) => info.getValue(),
-		// header: info => info
-		footer: (info) => info.column.id
-	}),
-	columnHelper.accessor('description', {
-		cell: (info) => info.getValue(),
-		// header: info => info
-		footer: (info) => info.column.id
-	}),
-	columnHelper.accessor('price', {
-		cell: (info) => info.getValue(),
-		// header: info => info
-		footer: (info) => info.column.id
-	})
-];
 
-const getNextPageParam: CustomGetNextPageParam<
-	ProductsAPIOutput,
-	ProductsAPIInput
-> = (lastPage, allPages) => {
-	if (lastPage?.cursor) {
-		if (lastPage.data.products.length < lastPage.cursor.limit) return undefined;
+function IndeterminateCheckbox({
+	indeterminate,
+	className = '',
+	...rest
+}: { indeterminate?: boolean } & HTMLProps<HTMLInputElement>) {
+	const ref = useRef<HTMLInputElement>(null!);
 
-		return {
-			...lastPage.cursor,
-			offset: lastPage.cursor.offset + lastPage.cursor.limit
-		};
-	}
+	useEffect(() => {
+		if (typeof indeterminate === 'boolean') {
+			ref.current.indeterminate = !rest.checked && indeterminate;
+		}
+	}, [ref, indeterminate, rest.checked]);
 
-	return defaultCursor;
-};
+	return (
+		<input
+			type='checkbox'
+			ref={ref}
+			className={className + ' cursor-pointer'}
+			{...rest}
+		/>
+	);
+}
 
-type FilterBy = NonNullable<ProductsAPIInput['filterBy']>;
+function Filter({
+	column,
+	table
+}: {
+	column: Column<any, any>;
+	table: Table<any>;
+}) {
+	const firstValue = table
+		.getPreFilteredRowModel()
+		.flatRows[0]?.getValue(column.id);
+
+	return typeof firstValue === 'number' ? (
+		<div className='flex space-x-2'>
+			<input
+				type='number'
+				value={((column.getFilterValue() as any)?.[0] ?? '') as string}
+				onChange={(e) =>
+					column.setFilterValue((old: any) => [e.target.value, old?.[1]])
+				}
+				placeholder={`Min`}
+				className='w-24 max-w-full px-2 py-1 border shadow rounded'
+			/>
+			<input
+				type='number'
+				value={((column.getFilterValue() as any)?.[1] ?? '') as string}
+				onChange={(e) =>
+					column.setFilterValue((old: any) => [old?.[0], e.target.value])
+				}
+				placeholder={`Max`}
+				className='w-24 max-w-full px-2 py-1 border shadow rounded'
+			/>
+		</div>
+	) : (
+		<input
+			type='text'
+			value={(column.getFilterValue() ?? '') as string}
+			onChange={(e) => column.setFilterValue(e.target.value)}
+			placeholder={`Search...`}
+			className='w-36 max-w-full px-2 py-1 border shadow rounded'
+		/>
+	);
+}
+
 export default function Home() {
 	const id = useId();
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
 	const {
 		value: filterByFormValues,
 		debouncedValue: filterByFormValuesDebounced,
@@ -105,6 +128,10 @@ export default function Home() {
 		{ name: 'title', value: undefined }
 	];
 
+	const onPageChange = useCallback(() => {
+		setRowSelection({});
+	}, []);
+
 	const {
 		infiniteQuery,
 		infiniteQueryData,
@@ -114,9 +141,9 @@ export default function Home() {
 		setCurrentIndex
 	} = useCustomInfiniteQuery<
 		ProductsAPIOutput,
-		['products', { cursor: typeof defaultCursor; filterBy?: FilterBy }]
+		['products', { cursor: typeof initialCursor; filterBy?: FilterBy }]
 	>({
-		defaultCursor,
+		initialCursor,
 		queryMainKey: 'products',
 		fetchFn: async (query): Promise<ProductsAPIOutput> => {
 			console.log('query.filterBy', query.filterBy);
@@ -146,9 +173,10 @@ export default function Home() {
 				};
 			}
 
-			return defaultCursor;
+			return initialCursor;
 		},
-		filterBy: filterByFormValuesDebounced
+		filterBy: filterByFormValuesDebounced,
+		onQueryKeyChange: onPageChange
 	});
 	const pages = infiniteQueryData.pages || [];
 	const currentPage = useMemo(
@@ -156,19 +184,77 @@ export default function Home() {
 		[currentIndex, infiniteQuery.data?.pages]
 	);
 
-	const data = useMemo(
+	const columns: ColumnDef<Products, any>[] = useMemo(
 		() => [
-			{ id: 1, taskName: 'Task 1', type: 'Task', dueDate: '28/08/2020' },
-			{ id: 2, taskName: 'Task 2', type: 'Task', dueDate: '28/09/2020' },
 			{
-				id: 3,
-				taskName: 'Task 3',
-				type: 'Information Request',
-				dueDate: '28/10/2020'
-			}
+				id: 'select',
+				enableHiding: true,
+				header: ({ table }) => (
+					<div className='px-1 flex items-center justify-center'>
+						<IndeterminateCheckbox
+							{...{
+								checked: table.getIsAllRowsSelected(),
+								indeterminate: table.getIsSomeRowsSelected(),
+								onChange: table.getToggleAllRowsSelectedHandler()
+							}}
+						/>
+					</div>
+				),
+				cell: ({ row }) => (
+					<div className='px-1 flex items-center justify-center'>
+						<IndeterminateCheckbox
+							{...{
+								checked: row.getIsSelected(),
+								indeterminate: row.getIsSomeSelected(),
+								onChange: row.getToggleSelectedHandler()
+							}}
+						/>
+					</div>
+				)
+			},
+			columnHelper.accessor('id', {
+				cell: (info) => info.getValue(),
+				header: (info) => <span className='capitalize'>{info.column.id}</span>,
+				footer: (info) => <span className='capitalize'>{info.column.id}</span>,
+				enableColumnFilter: false
+			}),
+			columnHelper.accessor('title', {
+				cell: (info) => info.getValue(),
+				header: (info) => <span className='capitalize'>{info.column.id}</span>,
+				footer: (info) => <span className='capitalize'>{info.column.id}</span>
+			}),
+			columnHelper.accessor('description', {
+				cell: (info) => info.getValue(),
+				header: (info) => <span className='capitalize'>{info.column.id}</span>,
+				footer: (info) => <span className='capitalize'>{info.column.id}</span>
+			}),
+			columnHelper.accessor('price', {
+				cell: (info) => info.getValue(),
+				header: (info) => {
+					console.log('infoinfoinfo', info);
+					return <span className='capitalize'>{info.column.id}</span>;
+				},
+				footer: (info) => <span className='capitalize'>{info.column.id}</span>
+			})
 		],
 		[]
 	);
+
+	const table = useReactTable({
+		data: currentPage,
+		columns,
+		state: { rowSelection },
+		onRowSelectionChange: setRowSelection,
+		getCoreRowModel: getCoreRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		enableColumnResizing: true,
+		columnResizeMode: 'onChange',
+		debugAll: process.env.NODE_ENV === 'development'
+		// debugTable: process.env.NODE_ENV === 'development',
+		// debugHeaders: process.env.NODE_ENV === 'development',
+		// debugColumns: process.env.NODE_ENV === 'development',
+		// debugRows: process.env.NODE_ENV === 'development',
+	});
 
 	return (
 		<>
@@ -178,9 +264,9 @@ export default function Home() {
 				<meta name='viewport' content='width=device-width, initial-scale=1' />
 				<link rel='icon' href='/favicon.ico' />
 			</Head>
-			<main className={`${styles.main} max-w-full`}>
+			<main className={`bg-black text-white p-8 max-w-full`}>
 				<div>
-					<form className='flex flex-col gap-2'>
+					<form className='flex flex-col gap-2 max-w-screen-sm mx-auto'>
 						{formFields.map((field) => (
 							<div key={field.name} className='flex flex-wrap gap-2'>
 								<label htmlFor={`${field.name}-${id}`} className='capitalize'>
@@ -200,6 +286,7 @@ export default function Home() {
 												: event.target.value
 										}))
 									}
+									className='px-2 py-1'
 								/>
 								<button
 									type='button'
@@ -220,10 +307,12 @@ export default function Home() {
 					<div className='flex flex-wrap gap-2'>
 						<button
 							disabled={isPreviousPageDisabled}
-							onClick={() =>
-								!isPreviousPageDisabled &&
-								setCurrentIndex((prevData) => prevData - 1)
-							}
+							onClick={() => {
+								if (!isPreviousPageDisabled) {
+									setCurrentIndex((prevData) => prevData - 1);
+									onPageChange();
+								}
+							}}
 							className='disabled:grayscale disabled:cursor-not-allowed disabled:brightness-50'
 						>
 							Previous Page
@@ -239,6 +328,7 @@ export default function Home() {
 									}
 
 									setCurrentIndex((prevData) => prevData + 1);
+									onPageChange();
 								})
 							}
 							className='disabled:grayscale disabled:cursor-not-allowed disabled:brightness-50'
@@ -269,19 +359,8 @@ export default function Home() {
 						</p>
 					</div>
 				</div>
-				<div className=''>
-					{/* {!infiniteQuery.isLoading && (
-						<ProductsTableMemoized
-							isLoading={false}
-							data={data}
-							columns={columns}
-						/>
-					)} */}
-					<ProductsTableMemoized
-						isLoading={infiniteQuery.isLoading}
-						data={currentPage}
-						columns={columns}
-					/>
+				<div className='max-w-full overflow-auto'>
+					<ProductsTable table={table} />
 				</div>
 			</main>
 		</>
@@ -289,33 +368,47 @@ export default function Home() {
 }
 
 const ProductsTable = <TData extends Record<string, any>>({
-	data,
-	columns,
-	isLoading
+	table
 }: {
-	data: TData[];
-	isLoading: boolean;
-	columns: ColumnDef<TData, any>[];
+	table: Table<TData>;
 }) => {
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel()
-	});
-
 	return (
 		<table className='table-fixed text-base text-gray-100'>
 			<thead className='p-2'>
 				{table.getHeaderGroups().map((headerGroup) => (
-					<tr key={headerGroup.id} className='border border-green-500'>
+					<tr key={headerGroup.id} className='border border-green-500 group:'>
 						{headerGroup.headers.map((header) => (
-							<th key={header.id} className='border border-green-500 p-2'>
-								{header.isPlaceholder
-									? null
-									: flexRender(
-											header.column.columnDef.header,
-											header.getContext()
-									  )}
+							<th
+								key={header.id}
+								className='border border-green-500 p-2'
+								style={{ position: 'relative', width: header.getSize() }}
+							>
+								<div className='flex flex-col gap-1'>
+									{header.isPlaceholder ? null : (
+										<>
+											{flexRender(
+												header.column.columnDef.header,
+												header.getContext()
+											)}
+											{header.column.getCanFilter() ? (
+												<div>
+													<Filter column={header.column} table={table} />
+												</div>
+											) : null}
+										</>
+									)}
+								</div>
+								{header.column.getCanResize() && (
+									<div
+										onMouseDown={header.getResizeHandler()}
+										onTouchStart={header.getResizeHandler()}
+										className={`resizer hover:opacity-0 group-hover:opacity-100 cursor-col-resize absolute right-0 top-0 h-full w-1 select-none bg-black/50 touch-none ${
+											header.column.getIsResizing()
+												? 'isResizing bg-indigo-700 opacity-100'
+												: ''
+										}`}
+									/>
+								)}
 							</th>
 						))}
 					</tr>
@@ -325,7 +418,11 @@ const ProductsTable = <TData extends Record<string, any>>({
 				{table.getRowModel().rows.map((row) => (
 					<tr key={row.id} className='border border-green-500'>
 						{row.getVisibleCells().map((cell) => (
-							<td key={cell.id} className='border border-green-500 p-5'>
+							<td
+								key={cell.id}
+								className='border border-green-500 p-5'
+								style={{ width: cell.column.getSize() }}
+							>
 								{flexRender(cell.column.columnDef.cell, cell.getContext())}
 							</td>
 						))}
@@ -336,7 +433,11 @@ const ProductsTable = <TData extends Record<string, any>>({
 				{table.getFooterGroups().map((footerGroup) => (
 					<tr key={footerGroup.id} className='border border-green-500'>
 						{footerGroup.headers.map((header) => (
-							<th key={header.id} className='border border-green-500 p-2'>
+							<th
+								key={header.id}
+								className='border border-green-500 p-2'
+								style={{ width: header.column.getSize() }}
+							>
 								{header.isPlaceholder
 									? null
 									: flexRender(
@@ -351,9 +452,3 @@ const ProductsTable = <TData extends Record<string, any>>({
 		</table>
 	);
 };
-
-const ProductsTableMemoized = ProductsTable;
-
-// memo(ProductsTable, (prevProps, currentProps) => {
-// 	return prevProps.isLoading !== currentProps.isLoading;
-// });

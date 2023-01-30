@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@next/font": "13.1.6",
+    "@tanstack/react-query": "^4.23.0",
     "@tanstack/react-table": "^8.7.8",
     "@types/node": "18.11.18",
     "@types/react": "18.0.27",
@@ -19,7 +20,6 @@
     "next": "13.1.6",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-query": "^3.39.3",
     "typescript": "4.9.4",
     "zod": "^3.20.2"
   },

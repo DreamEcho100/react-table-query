@@ -1,38 +1,28 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# react-table-query
 
-## Getting Started
+## Advantages of using react-query
 
-First, run the development server:
+- Data management: react-query provides an easy-to-use API for fetching, caching, and updating data. It takes care of the data management for you, allowing you to focus on the implementation of your application.
+- Optimized performance: react-query caches the data, reducing the load on the server. It only fetches data when necessary, which helps in optimizing the performance of your application.
+- Error handling: react-query makes it easy to handle errors that may occur during data fetching. It provides mechanisms for displaying error messages, making it possible to provide a better user experience in case of errors.
+- Concurrent data fetching: react-query allows for concurrent data fetching, which means that multiple requests can be made at the same time, improving the performance of your application.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+## Advantages of using react-table
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Flexibility: react-table provides a highly flexible and customizable table component, making it possible to create tables that fit the specific needs of your application.
+- Performance: react-table provides optimized performance, even with large datasets. It is designed to handle large amounts of data and render it efficiently.
+- User experience: react-table provides a smooth user experience, with features such as sorting, pagination, and filtering, making it possible to provide a user-friendly interface for working with tables.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Advantages of using react-query and react-table together
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+- Data management and display: By using react-query and react-table together, you can easily manage and display data in a table format, making it possible to provide a smooth and optimized user experience.
+- Easy to use: The combination of react-query and react-table provides a simple and easy-to-use solution for managing and displaying data in a table format, making it possible to quickly implement tables in your application.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+## Disadvantages of using react-query and react-table
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- Complexity: Depending on the complexity of the data being used, the combination of react-query and react-table can make the codebase more complex, requiring more careful management.
+- Overhead: The combination of react-query and react-table may add a little overhead in terms of code and setup compared to using simple React and HTML tables.
 
-## Learn More
+## In conclusion
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+The combination of react-query and react-table provides a powerful and flexible solution for managing and displaying data in a table format. However, it may have a learning curve for developers who are not familiar with it and may add some complexity to the codebase. It is important to carefully consider the specific needs of your application and weigh the advantages and disadvantages before choosing to use this combination.

@@ -2,8 +2,8 @@ import type {
 	GetNextPageParamFunction,
 	QueryKey,
 	UseInfiniteQueryOptions
-} from 'react-query';
-import { useInfiniteQuery } from 'react-query';
+} from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -18,18 +18,32 @@ export const useCustomInfiniteQuery = <
 	TData,
 	TQueryKey extends [string, { cursor: unknown; filterBy?: unknown }]
 >({
-	defaultCursor,
+	initialCursor,
 	queryMainKey,
 	fetchFn,
 	getNextPageParam,
+	onQueryKeyChange,
 	options = {},
 	filterBy = {}
 }: {
-	// defaultCursor: TQueryKey;
-	defaultCursor: TQueryKey[1]['cursor'];
+	initialCursor: TQueryKey[1]['cursor'];
 	queryMainKey: TQueryKey[0];
 	filterBy?: NonNullable<TQueryKey[1]['filterBy']>;
 	fetchFn: (query: TQueryKey[1]) => Promise<TData>;
+	/**
+	 * Don't forget to memoize it
+	 * @param queryKey
+	 * @returns
+	 */
+	onQueryKeyChange?: (
+		queryKey: readonly [
+			TQueryKey[0],
+			{
+				readonly initialCursor: TQueryKey[1]['cursor'];
+				readonly filterBy: NonNullable<TQueryKey[1]['filterBy']>;
+			}
+		]
+	) => void;
 	getNextPageParam?:
 		| GetNextPageParamFunction<{
 				data: TData;
@@ -53,8 +67,8 @@ export const useCustomInfiniteQuery = <
 		| undefined;
 }) => {
 	const queryKey = useMemo(
-		() => [queryMainKey, { defaultCursor, filterBy }],
-		[defaultCursor, filterBy, queryMainKey]
+		() => [queryMainKey, { initialCursor, filterBy }] as const,
+		[initialCursor, filterBy, queryMainKey]
 	);
 	const config = useRef<{
 		queryKey: typeof queryKey | null;
@@ -70,11 +84,8 @@ export const useCustomInfiniteQuery = <
 	>(
 		queryKey,
 		async ({ pageParam }) => {
-			// console.log('pageParam', pageParam);
-			const cursor: TQueryKey[1]['cursor'] = pageParam || defaultCursor;
+			const cursor: TQueryKey[1]['cursor'] = pageParam || initialCursor;
 
-			// Type '{ cursor: TQueryKey[1]["cursor"]; filterBy: filterBy | undefined; }' does not satisfy the expected type 'TQueryKey[1]'.
-			// '{ cursor: TQueryKey[1]["cursor"]; filterBy: filterBy | undefined; }' is assignable to the constraint of type 'TQueryKey[1]', but 'TQueryKey[1]' could be instantiated with a different subtype of constraint '{ cursor: unknown; filterBy?: filterBy | undefined; }'.ts(1360)
 			const query = { cursor, filterBy } as TQueryKey[1];
 
 			return {
@@ -87,8 +98,6 @@ export const useCustomInfiniteQuery = <
 			getNextPageParam
 		}
 	);
-
-	// console.log('infiniteQuery', infiniteQuery);
 
 	const infiniteQueryData = infiniteQuery.data || {
 		pageParams: [],
@@ -106,12 +115,16 @@ export const useCustomInfiniteQuery = <
 
 	useEffect(() => {
 		const configCurrent = config.current;
-		if (configCurrent.queryKey !== queryKey) setCurrentIndex(0);
+		if (configCurrent.queryKey !== queryKey) {
+			setCurrentIndex(0);
+			onQueryKeyChange && setTimeout(() => onQueryKeyChange?.(queryKey), 0);
+			configCurrent.queryKey = queryKey;
+		}
 
 		return () => {
 			configCurrent.queryKey = null;
 		};
-	}, [queryKey]);
+	}, [onQueryKeyChange, queryKey]);
 
 	return {
 		infiniteQuery,
@@ -124,11 +137,13 @@ export const useCustomInfiniteQuery = <
 	};
 };
 
-export const useDebounce = <TData>(initValue: TData, delay: number) => {
+export const useDebounce = <TData>(initValue: TData, delay?: number) => {
 	const [value, setValue] = useState(initValue);
 	const [debouncedValue, setDebouncedValue] = useState(initValue);
 
 	useEffect(() => {
+		if (!delay) return;
+
 		const handler = setTimeout(() => {
 			setDebouncedValue(value);
 		}, delay);
