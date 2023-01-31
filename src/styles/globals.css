@@ -109,3 +109,12 @@ a {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+	.color-scheme-dark {
+		color-scheme: dark;
+	}
+	.color-scheme-light {
+		color-scheme: light;
+	}
+}

@@ -6,9 +6,9 @@ import type { DeepKeys } from '@tanstack/react-table';
 
 export type TStringFilter = {
 	dataType: 'text';
-	filterType: 'EQUAL';
+	filterType: 'CONTAINS';
 	// | 'NOT_EQUAL'
-	// | 'CONTAINS'
+	// | 'EQUAL'
 	// | 'START_WITH'
 	// | 'END_WITH';
 	value?: string;

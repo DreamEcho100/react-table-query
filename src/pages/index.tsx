@@ -7,7 +7,9 @@ import { useCustomInfiniteQuery } from '@/utils/hooks';
 import { Products } from '@/ts';
 import { createColumnHelper } from '@tanstack/react-table';
 import { handleCreateStore } from '@/components/utils';
-import CustomTable from '@/components/react-query-table/CustomTable';
+import CustomTable, {
+	TableMetaData
+} from '@/components/react-query-table/CustomTable';
 import { useStore } from 'zustand';
 import { TableStore } from '@/components/utils/types';
 import { useMemo } from 'react';
@@ -25,8 +27,8 @@ const initialCursor: {
 const columnHelper = createColumnHelper<Products>();
 
 const initialFilterByFormValues = {
-	category: { dataType: 'text', filterType: 'EQUAL', value: 'jewelery' },
-	title: { dataType: 'text', filterType: 'EQUAL', value: 'John Hardy' }
+	category: { dataType: 'text', filterType: 'CONTAINS', value: 'jewelery' },
+	title: { dataType: 'text', filterType: 'CONTAINS', value: 'John Hardy' }
 	// price: {
 	// 	dataType: 'number',
 	// 	filterType: 'RANGE',
@@ -58,23 +60,28 @@ export default function Home() {
 		initialCursor,
 		queryMainKey: 'products',
 		fetchFn: async (query): Promise<ProductsAPIOutput['products']> => {
+			let filterBy: ProductsAPIInput['filterBy'] = {};
+
+			if (query.filterBy) {
+				let key: keyof typeof query.filterBy;
+				for (key in query.filterBy) {
+					switch (key) {
+						case 'title':
+						case 'category': {
+							const element = query.filterBy[key];
+							if (element.value.trim()) filterBy[key] = element.value;
+						}
+					}
+				}
+			}
+
 			return await fetch(
 				`/api/products/?limit=${query.cursor.limit}&offset=${
 					query.cursor.offset
 				}${
-					query.filterBy &&
-					Object.entries(query.filterBy).filter((item) => item[1].value)
-						.length !== 0
-						? `&filterBy=${decodeURIComponent(
-								JSON.stringify(
-									Object.fromEntries(
-										Object.entries(query.filterBy)
-											.filter((item) => item[1].value)
-											.map((item) => [item[0], item[1].value])
-									)
-								)
-						  )}`
-						: ''
+					Object.keys(filterBy).length === 0
+						? ''
+						: `&filterBy=${JSON.stringify(filterBy)}`
 				}`
 			)
 				.then((response) => {
@@ -114,7 +121,9 @@ export default function Home() {
 				footer: (info) => <span className='capitalize'>{info.column.id}</span>
 			}),
 			columnHelper.accessor('description', {
-				cell: (info) => info.getValue(),
+				cell: (info) => (
+					<div className='aspect-video w-64 max-w-fit'>{info.getValue()}</div>
+				),
 				header: (info) => <span className='capitalize'>{info.column.id}</span>,
 				footer: (info) => <span className='capitalize'>{info.column.id}</span>
 			}),
@@ -142,21 +151,18 @@ export default function Home() {
 				<meta name='viewport' content='width=device-width, initial-scale=1' />
 				<link rel='icon' href='/favicon.ico' />
 			</Head>
-			<main className={`bg-black text-white p-8 max-w-full`}>
-				<div className='flex flex-col gap-2'>
-					<div
-						className={`${inter.className} overflow-auto max-w-full flex flex-col gap-2`}
-					>
-						<p>Filters: {JSON.stringify(filterByFormValues)}</p>
-					</div>
-				</div>
+			<main
+				className={`dark:bg-black dark:text-white bg-white text-black p-8 max-w-full`}
+			>
 				<div className='max-w-full overflow-auto'>
+					<TableMetaData infiniteQuery={infiniteQuery} store={tableStore} />
 					<CustomTable
 						columns={columns}
 						setOnQueryKeyChange={setOnQueryKeyChange}
 						infiniteQuery={infiniteQuery}
 						store={tableStore}
 					/>
+					<TableMetaData infiniteQuery={infiniteQuery} store={tableStore} />
 				</div>
 			</main>
 		</>

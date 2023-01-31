@@ -197,7 +197,6 @@ const StringFilter = <TData extends Record<string, unknown>>({
 			type='text'
 			value={value}
 			onChange={onChange}
-			placeholder={`Search...`}
 			className='w-36 border shadow rounded px-2 py-1'
 			list={column.id + 'list'}
 			name={column.id}
