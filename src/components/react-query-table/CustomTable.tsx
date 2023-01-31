@@ -347,6 +347,12 @@ export const TableMetaData = <TData extends Record<string, any>>({
 		};
 	}, [currentPageIndex, infiniteQuery?.data?.pages]);
 
+	console.log('isLastPageEmpty', isLastPageEmpty);
+	console.log('isInLastPage', isInLastPage);
+	console.log('isInBeforeLastPage', isInBeforeLastPage);
+	console.log('isInFirstPage', isInFirstPage);
+	console.log('pagesLength', pagesLength);
+
 	const isNextPageDisabled = useMemo(
 		() =>
 			(!infiniteQuery.hasNextPage &&
@@ -362,6 +368,7 @@ export const TableMetaData = <TData extends Record<string, any>>({
 			isLastPageEmpty
 		]
 	);
+	console.log('isNextPageDisabled', isNextPageDisabled);
 
 	const isPreviousPageDisabled = useMemo(
 		() => currentPageIndex === 0 || infiniteQuery.isFetching,
@@ -414,7 +421,7 @@ export const TableMetaData = <TData extends Record<string, any>>({
 						if (res.data && Array.isArray(res.data?.pages)) {
 							console.log('res.data?.pages', res.data?.pages);
 							const lastPage = res.data.pages[res.data.pages.length - 1];
-							if (lastPage.data.length === 0) return;
+							if (isInBeforeLastPage && lastPage.data.length === 0) return;
 						}
 
 						incrementCurrentPageIndex();

@@ -1,35 +1,39 @@
 {
-  "name": "react-table-query",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@next/font": "13.1.6",
-    "@tanstack/match-sorter-utils": "^8.7.6",
-    "@tanstack/react-query": "^4.23.0",
-    "@tanstack/react-table": "^8.7.8",
-    "@types/node": "18.11.18",
-    "@types/react": "18.0.27",
-    "@types/react-dom": "18.0.10",
-    "class-variance-authority": "^0.4.0",
-    "eslint": "8.33.0",
-    "eslint-config-next": "13.1.6",
-    "next": "13.1.6",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-icons": "^4.7.1",
-    "typescript": "4.9.4",
-    "zod": "^3.20.2",
-    "zustand": "^4.3.2"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.13",
-    "postcss": "^8.4.21",
-    "tailwindcss": "^3.2.4"
-  }
+	"name": "react-table-query",
+	"version": "0.1.0",
+	"main": ".next/index.js",
+	"publishConfig": {
+		"access": "restricted"
+	},
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"@next/font": "13.1.6",
+		"@tanstack/match-sorter-utils": "^8.7.6",
+		"@tanstack/react-query": "^4.23.0",
+		"@tanstack/react-table": "^8.7.8",
+		"@types/node": "18.11.18",
+		"@types/react": "18.0.27",
+		"@types/react-dom": "18.0.10",
+		"class-variance-authority": "^0.4.0",
+		"eslint": "8.33.0",
+		"eslint-config-next": "13.1.6",
+		"next": "13.1.6",
+		"react": "18.2.0",
+		"react-dom": "18.2.0",
+		"react-icons": "^4.7.1",
+		"typescript": "4.9.4",
+		"zod": "^3.20.2",
+		"zustand": "^4.3.2"
+	},
+	"devDependencies": {
+		"autoprefixer": "^10.4.13",
+		"postcss": "^8.4.21",
+		"tailwindcss": "^3.2.4"
+	}
 }
